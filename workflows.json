@@ -1,0 +1,56 @@
+{
+    "Morning Dev Space": [
+        {
+            "action": "speak",
+            "param": "Initializing morning coding suite. Preparing workspace, Commander."
+        },
+        {
+            "action": "launch_app",
+            "param": "VS Code"
+        },
+        {
+            "action": "wait",
+            "param": 1.5
+        },
+        {
+            "action": "open_url",
+            "param": "github"
+        },
+        {
+            "action": "wait",
+            "param": 1.0
+        },
+        {
+            "action": "open_url",
+            "param": "gmail"
+        }
+    ],
+    "System Diagnostics": [
+        {
+            "action": "speak",
+            "param": "Running diagnostic sweep on CPU structures, RAM cores, and local databases."
+        },
+        {
+            "action": "wait",
+            "param": 2.0
+        },
+        {
+            "action": "speak",
+            "param": "Diagnostic complete. CPU, RAM, and Memory layers are fully optimized."
+        }
+    ],
+    "n8n Core Test": [
+        {
+            "action": "speak",
+            "param": "Triggering n8n automation webhook sequence."
+        },
+        {
+            "action": "webhook",
+            "param": "http://localhost:5678/webhook-test/friday",
+            "data": {
+                "event": "friday_activation",
+                "status": "ok"
+            }
+        }
+    ]
+}
