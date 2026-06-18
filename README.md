@@ -3,7 +3,6 @@
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)](https://www.python.org/downloads/)
 [![PyQt5](https://img.shields.io/badge/Qt5-PyQt5%205.15%2B-brightgreen?logo=qt)](https://pypi.org/project/PyQt5/)
 [![License](https://img.shields.io/badge/License-MIT-lightgrey)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/deepak06012229/FRIDAY-AI-OS?style=social)](https://github.com/deepak06012229/FRIDAY-AI-OS)
 
 ---
 
@@ -239,7 +238,7 @@ B.E. Computer Science Engineering (AI & ML)
 SSPM College of Engineering, Mumbai University
 
 GitHub: https://github.com/deepak06012229
-LinkedIn: [Add my LinkedIn profile link]
+LinkedIn: [www.linkedin.com/in/deepak-morje-186597348]
 
 **Project:** FRIDAY AI Operating System
 
