@@ -196,6 +196,16 @@ FRIDAY/
 
 ---
 
+## 📚 Documentation
+
+- [Capability Report](docs/CAPABILITY_REPORT.md)
+- [Commander Operations Manual](docs/COMMANDER_OPERATIONS_MANUAL.md)
+- [Architecture Overview](docs/ARCHITECTURE.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Changelog](docs/CHANGELOG.md)
+
+---
+
 ## 🛠️ Technologies Used
 
 | Category | Library / Tool | Version |
