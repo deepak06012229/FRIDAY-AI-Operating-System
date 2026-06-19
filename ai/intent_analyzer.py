@@ -19,7 +19,7 @@ class IntentAnalyzer:
             return {
                 "intent": "exit_app",
                 "param": "",
-                "speak": "Shutting down FRIDAY core systems. Goodbye, Commander."
+                "speak": "Shutting down FRIDAY core systems. Goodbye, Chief."
             }
 
         # 2. Local Workflows Execution
@@ -45,14 +45,26 @@ class IntentAnalyzer:
             }
 
         # 3. Learning & Memory Commands
-        # Match: "remember that my name is deepak" or "remember that I prefer vscode"
+        # Pattern: remember that <fact> [as <category>]
+        remember_cat_match = re.match(r"(?:remember that|learn that|save that)\s+(.*?)(?:\s+as\s+(personal|project|preference|goal|task))?$", q)
+        if remember_cat_match:
+            fact = remember_cat_match.group(1).strip()
+            category = remember_cat_match.group(2) or "general"
+            return {
+                "intent": "learn_fact_category",
+                "param": fact,
+                "category": category,
+                "speak": f"Got it, Chief. Saved that as a {category} fact."
+            }
+
+        # Existing simple remember (fallback)
         remember_match = re.match(r"(?:remember that|learn that|save that)\s+(.*)", q)
         if remember_match:
             fact = remember_match.group(1).strip()
             return {
                 "intent": "learn_fact",
                 "param": fact,
-                "speak": f"Understood, Commander. I have committed that fact to memory."
+                "speak": f"Understood, Chief. I have committed that fact to memory."
             }
 
         if q in ["what do you know about me", "who am i", "tell me my profile", "show profile"]:
@@ -62,11 +74,38 @@ class IntentAnalyzer:
                 "speak": "Reading stored user matrices."
             }
 
+        # Show facts by category commands
+        show_match = re.match(r"show (my )?(personal|projects|preferences|goals|tasks)", q)
+        if show_match:
+            cat_map = {
+                "personal": "personal",
+                "projects": "project",
+                "preferences": "preference",
+                "goals": "goal",
+                "tasks": "task",
+            }
+            category = cat_map.get(show_match.group(2))
+            return {
+                "intent": "show_facts_category",
+                "param": category,
+                "speak": f"Here are your {category} items, Chief."
+            }
+
         if q in ["clear memory", "wipe database", "reset memory", "forget everything"]:
             return {
                 "intent": "clear_memory",
                 "param": "",
                 "speak": "Purging all user databases. [LOG: Cache cleared]"
+            }
+
+        # Forget specific fact command
+        forget_match = re.match(r"forget (.+)", q)
+        if forget_match:
+            fact = forget_match.group(1).strip()
+            return {
+                "intent": "forget_fact",
+                "param": fact,
+                "speak": f"I've removed that memory, Chief."
             }
 
         # 4. App Launch Commands

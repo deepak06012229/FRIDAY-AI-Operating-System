@@ -94,6 +94,7 @@ class TTSWorker(QThread):
         self._current_file = None
         self.provider = get_voice_provider()
         self.is_running = False  # UI can query this flag
+        self.is_speaking_active = False
 
     # ---------------------------------------------------------------------
     # Public API
@@ -126,6 +127,7 @@ class TTSWorker(QThread):
                 break
         if self.player.state() == QMediaPlayer.PlayingState:
             self.player.stop()
+        self.is_speaking_active = False
         self._remove_temp_file()
 
     def _remove_temp_file(self):
@@ -140,6 +142,7 @@ class TTSWorker(QThread):
         from PyQt5.QtMultimedia import QMediaPlayer as MP
         if status == MP.EndOfMedia:
             logger.info("[VOICE] Playback completed")
+            self.is_speaking_active = False
             self.speaking_finished.emit()
             self._remove_temp_file()
             self._process_next()
@@ -150,10 +153,13 @@ class TTSWorker(QThread):
     def _process_next(self):
         if not self.running:
             return
+        if self.is_speaking_active:
+            return
         try:
             text = self.queue.get_nowait()
         except queue.Empty:
             return
+        self.is_speaking_active = True
         self.speaking_started.emit(text)
         logger.info(f"[VOICE] Generating audio for: {text}")
         # Run asynchronous synthesis inside the thread
@@ -162,6 +168,7 @@ class TTSWorker(QThread):
         except Exception as e:
             logger.error(f"[VOICE ERROR] Async synthesis failed: {e}")
             self.error_occurred.emit(str(e))
+            self.is_speaking_active = False
             self.speaking_finished.emit()
         finally:
             self.queue.task_done()
@@ -174,6 +181,7 @@ class TTSWorker(QThread):
             if not audio_path:
                 # DisabledProvider – skip playback but still emit finished
                 logger.info("[VOICE] Provider returned no audio; skipping playback.")
+                self.is_speaking_active = False
                 self.speaking_finished.emit()
                 return
             self._current_file = audio_path
@@ -183,6 +191,7 @@ class TTSWorker(QThread):
         except Exception as e:
             logger.error(f"[VOICE ERROR] Synthesis failed: {e}")
             self.error_occurred.emit(str(e))
+            self.is_speaking_active = False
             self.speaking_finished.emit()
             self._remove_temp_file()
 
@@ -190,7 +199,7 @@ class TTSWorker(QThread):
         logger.info("TTSWorker thread started.")
         self.is_running = True
         while self.running:
-            if not self.queue.empty():
+            if not self.queue.empty() and not self.is_speaking_active:
                 self._process_next()
             else:
                 self.msleep(100)  # avoid busy‑wait

@@ -117,7 +117,7 @@ class WorkflowEngine:
         logger.info("Seeding default automation workflows...")
         self.workflows = {
             "Morning Dev Space": [
-                {"action": "speak", "param": "Initializing morning coding suite. Preparing your workspace, Commander."},
+                {"action": "speak", "param": "Initializing morning coding suite. Preparing your workspace, Chief."},
                 {"action": "launch_app", "param": "VS Code"},
                 {"action": "wait", "param": 1.5},
                 {"action": "open_url", "param": "github"},

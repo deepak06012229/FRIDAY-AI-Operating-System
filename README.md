@@ -1,255 +1,92 @@
-# 📦 FRIDAY AI Operating System
+# FRIDAY AI Operating System
 
-[![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)](https://www.python.org/downloads/)
-[![PyQt5](https://img.shields.io/badge/Qt5-PyQt5%205.15%2B-brightgreen?logo=qt)](https://pypi.org/project/PyQt5/)
-[![License](https://img.shields.io/badge/License-MIT-lightgrey)](LICENSE)
+## Project Overview
+FRIDAY AI OS is a **personal AI assistant** built on a modular Python/PyQt5 architecture. It combines a **voice interface**, **LLM integration** (Ollama & Gemini), a **memory manager**, and a **workflow engine** to provide a conversational, hands‑free computing experience. The system is designed for local operation, respecting user privacy.
 
----
+## Key Features
+- **Voice Capture & Speech Synthesis** – Continuous microphone listening with real‑time waveform visualization and TTS output.
+- **LLM Backend** – Primary inference via Ollama (qwen2.5‑coder). Falls back to Gemini if Ollama is unavailable.
+- **Memory Management** – SQLite‑backed persistence of conversation logs, user profile, and categorized facts (Personal, Project, Preference, Goal, Task, General).
+- **Dynamic HUD** – Futuristic HUD circle reflecting states: `Idle`, `Listening`, `Thinking`, `Speaking`, `Workflow`, `Memory Update`.
+- **Workflow Engine** – Declarative JSON workflows that can launch apps, open URLs, or orchestrate multi‑step actions.
+- **Dashboard UI** – Tabbed interface with chat panel, voice panel, system metrics, automation panel, and memory browser.
+- **Personalization** – All responses address the user as **Chief** and incorporate stored memory facts.
 
-## 🎯 Introduction
+## Screenshots
+*(Add screenshots in the `assets/` folder and reference them here)*
 
-**FRIDAY AI Operating System** is a modern, extensible AI‑driven personal assistant that turns your desktop into an intelligent operating environment. Built with a clean, maintainable architecture, FRIDAY integrates large‑language‑model (LLM) back‑ends, speech‑to‑text, and a high‑quality **Edge‑TTS** voice engine. The project showcases full‑stack AI engineering skills—perfect for recruiters, internship coordinators, and hiring managers looking for evidence of real‑world AI system development.
+![Dashboard](assets/dashboard.png)
+![HUD Circle](assets/hud_circle.png)
 
----
+## Architecture Overview
+A high‑level diagram is provided in `docs/ARCHITECTURE.md`.
 
-## 🛠️ What is FRIDAY?
-
-FRIDAY is a Python‑based AI OS that can:
-- Understand natural language queries.
-- Execute local commands (open apps, run scripts, control hardware).
-- Run AI workflows (search the web, fetch knowledge, manage memory).
-- Provide spoken feedback using a modern, non‑blocking voice pipeline.
-
-It is designed to be **plugin‑ready** so new skills, voice providers, or LLMs can be added with minimal friction.
-
----
-
-## ✨ Key Features
-
-- **🔊 Edge‑TTS Voice Engine** – Natural‑sounding speech (`en‑US‑JennyNeural` by default) with a clean queue architecture.
-- **💬 Multi‑LLM Support** – Gemini, Ollama (local), and future OpenAI integration.
-- **🧠 Context‑Aware Brain** – Persistent memory, workflow automation, and a plugin system.
-- **🖥️ Rich PyQt5 UI** – Dashboard, voice diagnostics panel, and workflow visualizer.
-- **⚙️ Hot‑Reloadable Config** – Change voice, LLM, or API keys at runtime without restarting.
-- **🔧 Diagnostics Mode** – "Test Voice" button logs each voice pipeline stage.
-- **📦 Modular Design** – Clear separation of UI, core, voice, and AI layers.
-- **🪟 Windows‑First** – Tested on Windows, uses `QMediaPlayer` for audio playback.
-
----
-
-## 🏗️ Architecture Overview
-
-```
-FRIDAY/
-├─ ui/                     # PyQt5 UI (dashboard, panels)
-│   └─ panels/
-│       ├─ voice_panel.py   # Test‑voice button, diagnostics UI
-│       └─ …
-├─ ai/                     # LLM adapters (Gemini, Ollama)
-│   └─ ollama_provider.py
-├─ voice/                  # Voice subsystem
-│   ├─ tts_worker.py       # Queue thread, provider abstraction
-│   └─ device_manager.py
-├─ config.py               # Global configuration (voice, LLM, paths)
-├─ logs/                   # Runtime logs (friday_system.log)
-├─ requirements.txt
-└─ main.py                 # Application entry point
-```
-
-* **UI Layer** – Emits `speak_requested` signals.
-* **Voice Layer** – `TTSWorker` pulls text from a thread‑safe queue, calls the selected **VoiceProvider** (`EdgeTTSProvider` or `DisabledProvider`), and plays audio with `QMediaPlayer`.
-* **AI Layer** – Wraps LLM APIs; the Brain orchestrates prompting, memory, and command execution.
-* **Config** – Centralized, hot‑reloadable settings for voice, LLM, and API keys.
-
----
-
-## 📸 Screenshots
-
-> *Replace the placeholders with actual screenshots in the `docs/` folder.*
-
-| Dashboard | Voice Diagnostics |
-|-----------|-------------------|
-| ![Dashboard](docs/dashboard_placeholder.png) | ![Voice Diagnostics](docs/voice_diag_placeholder.png) |
-
----
-
-## 🚀 Installation
-
+## Installation Guide
 ```bash
 # Clone the repository
-git clone https://github.com/deepak06012229/FRIDAY-AI-OS.git
-cd FRIDAY-AI-OS
+git clone https://github.com/yourusername/friday-ai-os.git
+cd friday-ai-os
 
-# Create a virtual environment (recommended)
+# Set up Python environment (recommended virtualenv)
 python -m venv .venv
-\.venv\Scripts\activate   # PowerShell
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Install Ollama and required model (optional for offline use)
+ollama pull qwen2.5-coder:latest
+
+# Configure environment variables (copy .env.example → .env)
+cp .env.example .env
+# Edit .env to add Gemini API key if you want cloud fallback
 ```
 
----
-
-## 🛠️ Setup Guide
-
-### 1️⃣ Ollama (Local LLM)
+## Usage Guide
 ```bash
-# Download installer (Windows)
-#   https://ollama.com/download/OllamaSetup.exe
-
-# Start the Ollama server
-ollama serve
-
-# Pull a model (e.g., llama3)
-ollama pull llama3
-```
-Add to `config.py` (or set env vars):
-```python
-OLLAMA_ENDPOINT = "http://localhost:11434/api/chat"
-DEFAULT_OLLAMA_MODEL = "llama3"
-```
-
-### 2️⃣ Gemini API (Google Gemini)
-1. Create an API key in **Google AI Studio**.
-2. Export the key:
-```bash
-# PowerShell
-$env:GEMINI_API_KEY="YOUR_API_KEY"
-# Bash/macOS
-export GEMINI_API_KEY="YOUR_API_KEY"
-```
-Or place a `.env` file in the project root:
-```
-GEMINI_API_KEY=YOUR_API_KEY
-```
-
-### 3️⃣ Edge‑TTS (Voice Engine)
-`edge‑tts` is installed via `requirements.txt`. No extra keys are needed. To change the default voice edit `config.py`:
-```python
-VOICE_DEFAULT = "en‑US‑JennyNeural"  # any voice from the Azure Speech service
-VOICE_OPTIONS = [
-    "en‑US‑AriaNeural",
-    "en‑US‑JennyNeural",
-    "en‑GB‑SoniaNeural",
-]
-```
-
----
-
-## 💡 Usage Examples
-
-```bash
-# Start the application
 python main.py
 ```
-### Voice Interaction
-- **Test voice** – Click the **TEST VOICE** button in the UI. You’ll hear three sequential phrases and see detailed logs.
-- **Ask a question** – Type `What is the weather in London?` → FRIDAY replies in text and spoken audio.
-- **Run a command** – Type `open chrome` → Chrome launches, and FRIDAY confirms audibly.
-### CLI Samples
-```bash
-# Set environment variables (PowerShell)
-$env:GEMINI_API_KEY="YOUR_KEY"
+- The UI launches with the HUD circle at the top‑right.
+- Click **PAUSE LISTENING** to mute the voice engine.
+- Use voice commands or type into the **Chat** tab.
+- Available voice commands are listed in `docs/COMMANDS.md`.
 
-# Run a single query via the brain (example) – this is for debugging
-python -c "from brain import FRIDAYBrain; FRIDAYBrain().process('Tell me a joke')"
-```
+## Memory System
+- Persists conversation logs and facts in `friday_memory.db`.
+- Facts are automatically categorized based on simple keyword heuristics.
+- Use the **Memory** tab to view, add, or delete facts.
+- Memory updates trigger the HUD state **Memory Update**.
 
----
+## Workflow Engine
+- Workflows are defined in `workflows.json`.
+- Triggered via voice command `run workflow <name>` or programmatically.
+- UI shows progress in the **Automation** tab.
 
-## 📂 Project Structure
+## Voice System
+- `voice_engine.py` handles audio capture, level visualisation, and wake‑word detection.
+- `tts_worker.py` generates speech using the selected voice (Azure, Google, etc.).
 
-```
-FRIDAY/
-├─ .venv/                # Virtual environment (git‑ignored)
-├─ ai/                   # LLM adapters
-│   ├─ __init__.py
-│   └─ ollama_provider.py
-├─ config.py
-├─ logs/                 # Runtime logs
-│   └─ friday_system.log
-├─ requirements.txt
-├─ ui/
-│   ├─ __init__.py
-│   ├─ dashboard.py
-│   └─ panels/
-│       ├─ voice_panel.py
-│       └─ …
-├─ voice/
-│   ├─ __init__.py
-│   ├─ tts_worker.py
-│   └─ device_manager.py
-├─ main.py               # Entry point
-└─ README.md
-```
+## Dashboard Overview
+- Tabbed layout: **Chat**, **Voice**, **System**, **Automation**, **Memory**.
+- Real‑time CPU/Memory gauges, model/voice/workflow status.
+- HUD circle reflects current processing state.
 
----
+## Current Limitations
+- Limited natural‑language command coverage; only predefined intents are supported.
+- No multi‑language support – English only.
+- Speech synthesis quality depends on external TTS service.
+- Requires a working microphone and speaker.
+- Workflow engine currently supports only linear step execution.
 
-## 📅 Future Roadmap
+## Future Roadmap
+- Expand intent parser for richer command set.
+- Add multi‑language support.
+- Implement plug‑in architecture for third‑party tools.
+- Provide unit‑test suite and CI pipeline.
+- Refine UI/UX with dark‑mode theming and accessibility options.
 
-- **🔌 Plugin System** – Dynamically load third‑party skills (home automation, calendar integration). 
-- **🎤 ElevenLabs Voice Provider** – Add premium voice synthesis options. 
-- **🗂️ Persistent Knowledge Graph** – Store facts in a vector database for faster recall. 
-- **🌐 Web UI** – Optional Electron front‑end for cross‑platform access. 
-- **🔐 Secure Credential Store** – Encrypt API keys via OS secret managers. 
-- **📈 Automated Test Suite** – Full CI pipeline with unit, integration, and UI tests.
+## License
+This project is licensed under the **MIT License**.
 
----
-
-## 📚 Documentation
-
-- [Capability Report](docs/CAPABILITY_REPORT.md)
-- [Commander Operations Manual](docs/COMMANDER_OPERATIONS_MANUAL.md)
-- [Architecture Overview](docs/ARCHITECTURE.md)
-- [Roadmap](docs/ROADMAP.md)
-- [Changelog](docs/CHANGELOG.md)
-
----
-
-## 🛠️ Technologies Used
-
-| Category | Library / Tool | Version |
-|----------|----------------|---------|
-| **Language** | Python | 3.11+ |
-| **UI** | PyQt5 | 5.15.11 |
-| **Voice** | edge‑tts | 7.2.8 |
-| **Audio Playback** | QMediaPlayer (Qt) | – |
-| **LLM** | Ollama (local) | 0.6.2 |
-| | Gemini (REST) | – |
-| **Async** | asyncio | – |
-| **Logging** | custom `utils.logger` | – |
-| **Testing** | pytest (dev) | – |
-
----
-
-## 🤝 Contribution Guidelines
-
-1. **Fork** the repository.
-2. Create a **feature branch**: `git checkout -b feat/awesome-feature`.
-3. Follow **PEP‑8** style; run `flake8` before committing.
-4. Add or update **unit tests** in the `tests/` directory.
-5. Ensure all CI checks pass (`python -m py_compile` and `pytest`).
-6. Open a **Pull Request** with a clear description and link to any related issue.
-
-> *Tip for hiring managers:* Contributions that add a new voice provider, improve diagnostics, or integrate a new LLM demonstrate strong engineering and problem‑solving abilities.
-
----
-
-## 📄 License
-
-This project is licensed under the **MIT License** – see the `LICENSE` file for details.
-
----
-
-## 👤 Author
-
-**Deepak Rajan Morje**
-B.E. Computer Science Engineering (AI & ML)
-SSPM College of Engineering, Mumbai University
-
-GitHub: https://github.com/deepak06012229
-LinkedIn: [www.linkedin.com/in/deepak-morje-186597348]
-
-**Project:** FRIDAY AI Operating System
-
-> *Passionate AI, Robotics, and Software Engineering student focused on building intelligent systems, automation tools, and next‑generation AI assistants.*
+## Author
+**Deepak Rajan Morje** – Creator and maintainer.

@@ -41,8 +41,14 @@ def launch_application(name):
             
     # 2. Try common system executables directly via shell (fallback)
     try:
+        cmd_name = app_key
+        if app_key in ["vs code", "visual studio code"]:
+            cmd_name = "code"
+        elif app_key in ["google chrome", "chrome"]:
+            cmd_name = "chrome"
+            
         # Check standard PATH command
-        subprocess.Popen(app_key, shell=True)
+        subprocess.Popen(cmd_name, shell=True)
         logger.info(f"AppLauncher: Started '{name}' via shell command.")
         return True, f"Triggered execution for {name}."
     except Exception as e:

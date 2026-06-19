@@ -96,7 +96,7 @@ class ChatPanel(QWidget):
         """Displays user's prompt in the chat."""
         html = f"""
         <div style="margin-bottom: 12px; border-left: 2px solid #00F0FF; padding-left: 8px;">
-            <span style="color: #00F0FF; font-weight: bold;">[OPERATOR]</span> 
+            <span style="color: #00F0FF; font-weight: bold;">[CHIEF]</span> 
             <span style="color: #88F5FF; font-size: 10px;">({self.get_time_stamp()})</span><br/>
             <span style="color: #E2E8F0;">{message}</span>
         </div>

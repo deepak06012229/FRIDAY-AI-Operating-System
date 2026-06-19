@@ -1,18 +1,23 @@
 import os
 import time
 import datetime
-from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTabWidget, QPushButton, QSplitter, QStyle
+from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTabWidget, QPushButton, QSplitter, QStyle, QProgressBar, QFileDialog, QGridLayout
+import os
 from PyQt5.QtCore import QTimer, Qt, pyqtSlot
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QPixmap, QFontDatabase
 
 # Import custom panels and widgets
 from ui.widgets.hud_circle import HUDAntiGravityCircle
+from utils.system_monitor import SystemMonitor
 from ui.widgets.waveform_widget import HUDAntiGravityWaveform
 from ui.panels.chat_panel import ChatPanel
 from ui.panels.voice_panel import VoicePanel
 from ui.panels.system_panel import SystemPanel
 from ui.panels.automation_panel import AutomationPanel
 from ui.panels.memory_panel import MemoryPanel
+from PyQt5.QtWidgets import QDialog
+# SecurityLoginDialog import removed
+from PyQt5.QtWidgets import QMessageBox
 
 from utils import logger
 import config
@@ -31,6 +36,8 @@ class FRIDAYDashboard(QMainWindow):
         self.listening_active = True
         self.init_ui()
         self.connect_signals()
+        # Prompt for authentication on startup
+        # Authentication prompt removed
 
     def init_ui(self):
         self.setWindowTitle(f"{config.SYSTEM_NAME} AI Operating System")
@@ -88,13 +95,32 @@ class FRIDAYDashboard(QMainWindow):
         header_layout.setContentsMargins(5, 5, 5, 5)
 
         # FRIDAY Logo/Title
-        logo_lbl = QLabel(f"// {config.SYSTEM_NAME} AI OS v2.0 //")
-        logo_lbl.setStyleSheet("font-size: 16px; font-weight: bold; color: #00F0FF; letter-spacing: 3px;")
-        header_layout.addWidget(logo_lbl)
+        # Chief Profile Section
+        self.avatar_lbl = QLabel()
+        default_avatar = getattr(config, "AVATAR_DEFAULT", "")
+        if default_avatar and os.path.isfile(default_avatar):
+            self.avatar_lbl.setPixmap(QPixmap(default_avatar).scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        else:
+            self.avatar_lbl.setStyleSheet("background-color: #0B1E36; border-radius: 20px;")
+        self.avatar_lbl.setFixedSize(40, 40)
+
+        self.name_lbl = QLabel("Chief")
+        self.name_lbl.setStyleSheet("font-size: 14px; font-weight: bold; color: #00F0FF;")
+
+        self.edit_profile_btn = QPushButton("Edit")
+        self.edit_profile_btn.setFixedSize(30, 30)
+        self.edit_profile_btn.setStyleSheet("background-color: #051630; border: 1px solid #00F0FF; color: #00F0FF;")
+        self.edit_profile_btn.clicked.connect(self.edit_profile)
+
+        profile_layout = QHBoxLayout()
+        profile_layout.addWidget(self.avatar_lbl)
+        profile_layout.addWidget(self.name_lbl)
+        profile_layout.addWidget(self.edit_profile_btn)
+        header_layout.addLayout(profile_layout)
         
         header_layout.addStretch()
 
-        # Dynamic System Greeting (e.g. Good Afternoon, Commander)
+        # Dynamic System Greeting (e.g. Good Afternoon, Chief)
         self.greeting_lbl = QLabel("Initializing biosync matrices...")
         self.greeting_lbl.setStyleSheet("font-size: 12px; color: #10B981; font-weight: bold;")
         header_layout.addWidget(self.greeting_lbl)
@@ -113,6 +139,47 @@ class FRIDAYDashboard(QMainWindow):
         div.setFixedHeight(2)
         div.setStyleSheet("background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #00F0FF, stop:0.5 #0B1E36, stop:1 #030F26);")
         main_layout.addWidget(div)
+
+        # ------- Top‑Right HUD Info Panel -------
+        self.info_panel = QWidget()
+        self.info_panel.setObjectName("infoPanel")
+        info_layout = QGridLayout(self.info_panel)
+        info_layout.setSpacing(5)
+
+        # AI Status (placeholder animated icon)
+        self.ai_status_lbl = QLabel()
+        self.ai_status_lbl.setObjectName("aiStatusLabel")
+        self.ai_status_lbl.setFixedSize(24, 24)
+        self.ai_status_lbl.setStyleSheet("background-color: #00F0FF; border-radius: 12px;")
+
+        # CPU Usage
+        self.cpu_label = QLabel("CPU")
+        self.cpu_progress = QProgressBar()
+        self.cpu_progress.setMaximum(100)
+        self.cpu_progress.setTextVisible(False)
+
+        # Memory Usage
+        self.mem_label = QLabel("Memory")
+        self.mem_progress = QProgressBar()
+        self.mem_progress.setMaximum(100)
+        self.mem_progress.setTextVisible(False)
+
+        # Model / Voice / Workflow
+        self.model_lbl = QLabel("Model: N/A")
+        self.voice_lbl = QLabel("Voice: N/A")
+        self.workflow_lbl = QLabel("Workflow: N/A")
+
+        # Assemble grid
+        info_layout.addWidget(self.ai_status_lbl, 0, 0, Qt.AlignCenter)
+        info_layout.addWidget(self.cpu_label, 0, 1)
+        info_layout.addWidget(self.cpu_progress, 0, 2)
+        info_layout.addWidget(self.mem_label, 1, 1)
+        info_layout.addWidget(self.mem_progress, 1, 2)
+        info_layout.addWidget(self.model_lbl, 2, 0, 1, 3)
+        info_layout.addWidget(self.voice_lbl, 3, 0, 1, 3)
+        info_layout.addWidget(self.workflow_lbl, 4, 0, 1, 3)
+
+        main_layout.addWidget(self.info_panel)
 
         # ==================== 2. MAIN HUB INTERFACE ====================
         content_splitter = QSplitter(Qt.Horizontal)
@@ -233,6 +300,11 @@ class FRIDAYDashboard(QMainWindow):
         # Run first time greet update
         self.update_header_data()
 
+        # System metrics timer (updates HUD widgets every 2 seconds)
+        self.stats_timer = QTimer(self)
+        self.stats_timer.timeout.connect(self.update_system_metrics)
+        self.stats_timer.start(2000)
+
     def connect_signals(self):
         # 1. Connect Voice Panel Device Selector to Voice Engine
         self.voice_panel.device_changed.connect(self.voice.set_device)
@@ -317,7 +389,7 @@ class FRIDAYDashboard(QMainWindow):
                 # If command followed wake word directly
                 self.brain.process_query(clean_query)
             else:
-                # Just wake word spoken, prompt commander
+                # Just wake word spoken, prompt Chief
                 username = self.brain.memory.get_profile_value("username", config.USER_NAME)
                 response = f"At your service, {username}. How can I assist you?"
                 self.chat_panel.add_friday_message(response)
@@ -341,6 +413,7 @@ class FRIDAYDashboard(QMainWindow):
     @pyqtSlot(str, str)
     def handle_brain_response(self, user_msg, response_msg):
         self.chat_panel.add_friday_message(response_msg)
+        self.memory_panel.refresh_memory_list()
 
     @pyqtSlot(str)
     def speak_text(self, text):
@@ -365,8 +438,10 @@ class FRIDAYDashboard(QMainWindow):
 
     @pyqtSlot(str)
     def trigger_workflow(self, name):
-        """Starts a workflow thread sequence."""
-        self.panels_tab.setCurrentIndex(3) # Move to Workflow tab
+        """Starts a workflow thread sequence and tracks active workflow for HUD."""
+        self.panels_tab.setCurrentIndex(3)  # Move to Workflow tab
+        # Record currently executing workflow for HUD display
+        self.brain._current_workflow = name
         self.brain.workflow_engine.execute_workflow(
             name,
             speak_cb=self.speak_text,
@@ -444,3 +519,31 @@ class FRIDAYDashboard(QMainWindow):
         if hasattr(self, 'tts_worker'):
             self.tts_worker.stop()
         event.accept()
+
+    # ---------------------------------------------------------------------
+    # UI helper slots
+    # ---------------------------------------------------------------------
+    @pyqtSlot()
+    def update_system_metrics(self):
+        """Refresh HUD metric widgets with live system stats."""
+        cpu = SystemMonitor.cpu_percent()
+        mem = SystemMonitor.ram_percent()
+        self.cpu_progress.setValue(cpu)
+        self.cpu_label.setText(f"CPU {cpu}%")
+        self.mem_progress.setValue(mem)
+        self.mem_label.setText(f"Memory {mem}%")
+        # Update model / voice / workflow labels via brain getters
+        self.model_lbl.setText(f"Model: {self.brain.get_active_model()}")
+        self.voice_lbl.setText(f"Voice: {self.brain.get_active_voice()}")
+        self.workflow_lbl.setText(f"Workflow: {self.brain.get_active_workflow()}")
+
+    @pyqtSlot()
+    def edit_profile(self):
+        """Open a file dialog to select a new avatar image."""
+        file_path, _ = QFileDialog.getOpenFileName(self, "Select Avatar Image", "", "Images (*.png *.jpg *.jpeg *.bmp)")
+        if file_path:
+            self.avatar_lbl.setPixmap(QPixmap(file_path).scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            # Persist path in config for next launches
+            setattr(config, "AVATAR_DEFAULT", file_path)
+
+# Login dialog functionality removed after security system deletion

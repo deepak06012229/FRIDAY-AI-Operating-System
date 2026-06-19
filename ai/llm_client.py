@@ -30,7 +30,7 @@ class LLMClient:
             facts = self.memory.get_all_facts()
             if facts:
                 facts_str = "\n".join([f"- {f['fact']} (Category: {f['category']})" for f in facts[:10]])
-                context += f"\n\nKnown Facts about the Commander/User:\n{facts_str}"
+                context += f"\n\nKnown Facts about the Chief/User:\n{facts_str}"
 
         # Construct payload for Gemini API
         url = config.GEMINI_REST_URL.format(model=self.model, key=self.api_key)
@@ -85,7 +85,7 @@ class LLMClient:
         
         # 1. Check direct greeting requests
         if any(greet in q for greet in ["hello", "hi", "hey friday", "hello friday"]):
-            return "Greetings, Commander. All systems are operational. Ready for instructions."
+            return "Greetings, Chief. All systems are operational. Ready for instructions."
             
         if "who are you" in q or "your name" in q:
             return "I am FRIDAY, a personal AI operating system inspired by Tony Stark's assistant from Marvel. Ready to assist."

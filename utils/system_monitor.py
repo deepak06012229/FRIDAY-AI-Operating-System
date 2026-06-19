@@ -1,56 +1,77 @@
+import psutil
 import time
 from PyQt5.QtCore import QThread, pyqtSignal
-import psutil
-from utils import logger
+
+
+class SystemMonitor:
+    """Utility class for retrieving system metrics."""
+
+    @staticmethod
+    def cpu_percent() -> int:
+        """Return current CPU usage percentage."""
+        return int(psutil.cpu_percent(interval=0.1))
+
+    @staticmethod
+    def ram_percent() -> int:
+        """Return current RAM usage percentage."""
+        return int(psutil.virtual_memory().percent)
+
+    @staticmethod
+    def cpu_freq() -> float:
+        """Return current CPU frequency in MHz."""
+        freq = psutil.cpu_freq()
+        return freq.current if freq else 0.0
+
+    @staticmethod
+    def disk_free_gb() -> float:
+        """Return free disk space in gigabytes."""
+        return psutil.disk_usage("/").free / (1024 ** 3)
+
+    @staticmethod
+    def ram_used_gb() -> float:
+        """Return used RAM in gigabytes."""
+        return psutil.virtual_memory().used / (1024 ** 3)
+
+    @staticmethod
+    def ram_total_gb() -> float:
+        """Return total RAM in gigabytes."""
+        return psutil.virtual_memory().total / (1024 ** 3)
+
+    @staticmethod
+    def uptime_seconds() -> int:
+        """Return system uptime in seconds."""
+        return int(time.time() - psutil.boot_time())
+
+    @staticmethod
+    def process_count() -> int:
+        """Return number of running processes."""
+        return len(psutil.pids())
+
 
 class SystemMonitorThread(QThread):
-    stats_updated = pyqtSignal(dict)  # Emits dictionary of system stats
+    """QThread that periodically emits system stats."""
+    stats_updated = pyqtSignal(dict)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, interval_ms: int = 2000):
         super().__init__(parent)
-        self.running = True
-        self._start_time = time.time()
+        self._running = True
+        self.interval_ms = interval_ms
 
     def run(self):
-        logger.info("System Monitor Thread started.")
-        while self.running:
-            try:
-                # CPU and RAM Usage
-                cpu_percent = psutil.cpu_percent(interval=None)
-                ram = psutil.virtual_memory()
-                ram_percent = ram.percent
-                ram_used_gb = ram.used / (1024 ** 3)
-                ram_total_gb = ram.total / (1024 ** 3)
-
-                # Disk Usage
-                disk = psutil.disk_usage('/')
-                disk_percent = disk.percent
-                disk_free_gb = disk.free / (1024 ** 3)
-
-                # CPU cores breakdown (average)
-                cpu_freq = psutil.cpu_freq()
-                cpu_freq_mhz = cpu_freq.current if cpu_freq else 0
-
-                uptime = int(time.time() - self._start_time)
-
-                stats = {
-                    "cpu_percent": cpu_percent,
-                    "ram_percent": ram_percent,
-                    "ram_used_gb": ram_used_gb,
-                    "ram_total_gb": ram_total_gb,
-                    "disk_percent": disk_percent,
-                    "disk_free_gb": disk_free_gb,
-                    "cpu_freq": cpu_freq_mhz,
-                    "uptime_seconds": uptime
-                }
-
-                self.stats_updated.emit(stats)
-            except Exception as e:
-                logger.error(f"Error in SystemMonitorThread: {e}")
-
-            self.msleep(1000)  # Check every 1 second
+        while self._running:
+            stats = {
+                "cpu_percent": SystemMonitor.cpu_percent(),
+                "ram_percent": SystemMonitor.ram_percent(),
+                "cpu_freq": SystemMonitor.cpu_freq(),
+                "disk_free_gb": SystemMonitor.disk_free_gb(),
+                "ram_used_gb": SystemMonitor.ram_used_gb(),
+                "ram_total_gb": SystemMonitor.ram_total_gb(),
+                "uptime_seconds": SystemMonitor.uptime_seconds(),
+                "process_count": SystemMonitor.process_count(),
+            }
+            self.stats_updated.emit(stats)
+            self.msleep(self.interval_ms)
 
     def stop(self):
-        self.running = False
+        self._running = False
         self.wait()
-        logger.info("System Monitor Thread stopped.")

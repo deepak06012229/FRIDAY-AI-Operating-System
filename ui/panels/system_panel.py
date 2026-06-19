@@ -124,15 +124,17 @@ class SystemPanel(QWidget):
 
     def update_system_stats(self, stats):
         """Called dynamically from the monitor thread to update labels and progress bars."""
-        self.cpu_bar.setValue(int(stats["cpu_percent"]))
-        self.ram_bar.setValue(int(stats["ram_percent"]))
+        self.cpu_bar.setValue(int(stats.get("cpu_percent", 0)))
+        self.ram_bar.setValue(int(stats.get("ram_percent", 0)))
 
-        self.cpu_freq_lbl.setText(f"CPU CORE FREQ: {stats['cpu_freq']:.0f} MHz")
-        self.disk_free_lbl.setText(f"FREE STORAGE: {stats['disk_free_gb']:.1f} GB")
-        self.ram_used_lbl.setText(f"MEMORY ALLOC: {stats['ram_used_gb']:.1f} / {stats['ram_total_gb']:.1f} GB")
-        
+        self.cpu_freq_lbl.setText(f"CPU CORE FREQ: {stats.get('cpu_freq', 0):.0f} MHz")
+        self.disk_free_lbl.setText(f"FREE STORAGE: {stats.get('disk_free_gb', 0):.1f} GB")
+        self.ram_used_lbl.setText(
+            f"MEMORY ALLOC: {stats.get('ram_used_gb', 0):.1f} / {stats.get('ram_total_gb', 0):.1f} GB"
+        )
+
         # Format uptime string
-        uptime = stats["uptime_seconds"]
+        uptime = stats.get("uptime_seconds", 0)
         h = uptime // 3600
         m = (uptime % 3600) // 60
         s = uptime % 60

@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QListWidget, QGridLayout, QMessageBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QListWidget, QGridLayout, QMessageBox, QTabWidget
 from PyQt5.QtCore import pyqtSignal, Qt
 from utils import logger
 import config
@@ -92,26 +92,39 @@ class MemoryPanel(QWidget):
         mem_lbl.setStyleSheet("font-size: 10px; color: #94A3B8; font-weight: bold; margin-top: 10px;")
         layout.addWidget(mem_lbl)
 
-        self.memory_list = QListWidget()
-        self.memory_list.setStyleSheet("""
-            QListWidget {
-                background-color: #030F26;
-                border: 1px solid #0B1E36;
-                border-radius: 4px;
-                color: #E2E8F0;
-                font-family: 'Consolas', monospace;
-                font-size: 11px;
-                padding: 6px;
-            }
-            QListWidget::item {
-                padding: 4px;
-            }
-            QListWidget::item:selected {
-                background-color: #0B1E36;
-                color: #00F0FF;
-            }
+        # Create tab widget with separate lists per category
+        self.tab_widget = QTabWidget()
+        self.tab_widget.setStyleSheet("""
+            QTabBar::tab { padding: 4px 8px; }
         """)
-        layout.addWidget(self.memory_list)
+        # Helper to create a styled QListWidget
+        def create_list():
+            lst = QListWidget()
+            lst.setStyleSheet("""
+                QListWidget {
+                    background-color: #030F26;
+                    border: 1px solid #0B1E36;
+                    border-radius: 4px;
+                    color: #E2E8F0;
+                    font-family: 'Consolas', monospace;
+                    font-size: 11px;
+                    padding: 6px;
+                }
+                QListWidget::item { padding: 4px; }
+                QListWidget::item:selected { background-color: #0B1E36; color: #00F0FF; }
+            """)
+            return lst
+        self.personal_list = create_list()
+        self.project_list = create_list()
+        self.preference_list = create_list()
+        self.goal_list = create_list()
+        self.task_list = create_list()
+        self.tab_widget.addTab(self.personal_list, "Personal")
+        self.tab_widget.addTab(self.project_list, "Projects")
+        self.tab_widget.addTab(self.preference_list, "Preferences")
+        self.tab_widget.addTab(self.goal_list, "Goals")
+        self.tab_widget.addTab(self.task_list, "Tasks")
+        layout.addWidget(self.tab_widget)
 
         # Memory actions buttons
         btn_layout = QHBoxLayout()
@@ -191,16 +204,35 @@ class MemoryPanel(QWidget):
         QMessageBox.information(self, "Memory System", "Profile credentials updated successfully.")
 
     def refresh_memory_list(self):
-        self.memory_list.clear()
-        facts = self.memory.get_all_facts()
-        for f in facts:
-            self.memory_list.addItem(f["fact"])
+        # Clear each category list
+        for lst in [self.personal_list, self.project_list, self.preference_list, self.goal_list, self.task_list]:
+            lst.clear()
+        # Populate lists by category
+        category_map = {
+            "personal": self.personal_list,
+            "project": self.project_list,
+            "preference": self.preference_list,
+            "goal": self.goal_list,
+            "task": self.task_list,
+        }
+        all_facts = self.memory.get_all_facts()
+        for fact in all_facts:
+            cat = fact.get("category", "general")
+            target_lst = category_map.get(cat)
+            if target_lst:
+                target_lst.addItem(fact["fact"])
+            else:
+                # Fallback to personal if unknown category
+                self.personal_list.addItem(fact["fact"])
 
     def forget_selected_fact(self):
-        selected = self.memory_list.currentItem()
+        # Determine which list is currently visible (active tab)
+        current_list = self.tab_widget.currentWidget()
+        if not isinstance(current_list, QListWidget):
+            return
+        selected = current_list.currentItem()
         if not selected:
             return
-        
         fact_text = selected.text()
         self.memory.delete_fact(fact_text)
         self.refresh_memory_list()

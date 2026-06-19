@@ -2,8 +2,9 @@ import os
 
 # ==================== GENERAL CONFIG ====================
 SYSTEM_NAME = "FRIDAY"
-USER_NAME = "Commander"
+USER_NAME = "Chief"
 GREETING_FORMAT = "Good {time_of_day}, {user}. FRIDAY systems online."
+ENABLE_CHIEF_WORKFLOW = True
 
 # ==================== FILE PATHS ====================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -12,13 +13,7 @@ LOG_PATH = os.path.join(BASE_DIR, "logs", "friday_system.log")
 WORKFLOW_PATH = os.path.join(BASE_DIR, "workflows.json")
 
 # ==================== AUDIO CONFIG ====================
-DEFAULT_SAMPLE_RATE = 16000  # Best for Speech Recognition
-CHANNELS = 1
-# Energy threshold for Voice Activity Detection (VAD)
-VAD_ENERGY_THRESHOLD = 800   # Dynamic noise floor will adjust this
-VAD_SILENCE_DURATION = 1.5   # Seconds of silence before stopping recording
-VAD_MIN_DURATION = 0.5       # Min duration to avoid clipping short words
-VAD_MAX_DURATION = 15.0      # Max recording time safety limit
+DEFAULT_SAMPLE_RATE = 16000
 
 # ==================== VOICE / TTS CONFIG ====================
 # Default voice for Edge‑TTS
@@ -31,6 +26,20 @@ VOICE_OPTIONS = [
 ]
 # Voice provider selection: "edge" (default), "disabled", "elevenlabs" (future)
 VOICE_PROVIDER = "edge"
+
+# ==================== VAD / AUDIO PROCESSING CONFIG ====================
+# Energy threshold for voice activity detection (baseline noise floor). Adjust per hardware.
+VAD_ENERGY_THRESHOLD = 300
+# Minimum duration of speech to consider a valid utterance (seconds)
+VAD_MIN_DURATION = 0.2
+# Duration of silence after speech before ending recording (seconds)
+VAD_SILENCE_DURATION = 1.0
+# Audio channels for capture (1 = mono, 2 = stereo)
+CHANNELS = 1
+
+# ==================== WAKE WORD CONFIG ====================
+# List of wake words that activate FRIDAY when listening continuously.
+WAKE_WORDS = ["hey friday", "friday", "ok friday"]
 
 # ==================== LLM & AI CONFIG ====================
 # Default model for reasoning
@@ -56,5 +65,6 @@ WEB_REGISTRY = {
     "youtube": "https://www.youtube.com",
     "google": "https://www.google.com",
     "github": "https://github.com",
+    "youtube_music": "https://music.youtube.com",
     "gmail": "https://mail.google.com",
 }

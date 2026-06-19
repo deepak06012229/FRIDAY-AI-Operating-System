@@ -6,11 +6,12 @@ from PyQt5.QtGui import QPainter, QPen, QColor, QBrush, QRadialGradient
 class HUDAntiGravityCircle(QWidget):
     """
     Futuristic custom QPainter widget drawing a Tony Stark inspired HUD circle.
-    Displays rotating arcs, glowing rings, and transitions based on system state.
+    Displays rotating arcs, glowing rings, and transitions based on system state
+    including WORKFLOW and MEMORY UPDATE processing.
     """
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.state = "Idle"  # Calibrating, Idle, Listening, Thinking, Speaking, Error
+        self.state = "Idle"  # Calibrating, Idle, Listening, Thinking, Speaking, Error, Workflow, Memory Update
         self.angle_offset = 0.0
         self.scale_pulse = 1.0
         self.pulse_direction = 1
@@ -45,6 +46,10 @@ class HUDAntiGravityCircle(QWidget):
             self.angle_offset += 1.0
         elif self.state == "Calibrating":
             self.angle_offset += 2.0
+        elif self.state == "Workflow":
+            self.angle_offset += 4.0
+        elif self.state == "Memory Update":
+            self.angle_offset += 0.8
         else:  # Error
             self.angle_offset += 0.2
 
@@ -56,7 +61,7 @@ class HUDAntiGravityCircle(QWidget):
         if self.state == "Listening":
             # Pulse proportional to voice volume
             self.scale_pulse = 1.0 + (self.volume_level / 200.0)
-        elif self.state == "Thinking":
+        elif self.state == "Thinking" or self.state == "Workflow":
             # Smooth sine wave pulse
             self.scale_pulse += 0.015 * self.pulse_direction
             if self.scale_pulse >= 1.15:
@@ -101,6 +106,12 @@ class HUDAntiGravityCircle(QWidget):
         elif self.state == "Speaking":
             hud_color = QColor(16, 185, 129, 220)   # Green
             glow_color = QColor(16, 185, 129, 45)
+        elif self.state == "Workflow":
+            hud_color = QColor(139, 92, 246, 220)   # Violet
+            glow_color = QColor(139, 92, 246, 50)
+        elif self.state == "Memory Update":
+            hud_color = QColor(59, 130, 246, 220)   # Blue
+            glow_color = QColor(59, 130, 246, 50)
         elif self.state == "Error":
             hud_color = QColor(239, 68, 68, 220)    # Red
             glow_color = QColor(239, 68, 68, 50)

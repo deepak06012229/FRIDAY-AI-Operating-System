@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QListWidg
 from PyQt5.QtCore import pyqtSignal, Qt
 import requests
 import json
+import time
 from utils import logger
 import config
 
@@ -200,5 +201,3 @@ class AutomationPanel(QWidget):
             threading.Thread(target=run_ping, daemon=True).start()
         except Exception as e:
             self.progress_display.append(f"<span style='color: #EF4444;'>Error scheduling webhook post: {e}</span>")
-            
-        import time # import local usage

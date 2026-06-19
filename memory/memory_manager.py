@@ -3,6 +3,15 @@ import os
 import config
 from utils import logger
 from datetime import datetime
+from enum import Enum
+
+class MemoryCategory(Enum):
+    PERSONAL = "personal"
+    PROJECT = "project"
+    PREFERENCE = "preference"
+    GOAL = "goal"
+    TASK = "task"
+    GENERAL = "general"
 
 class MemoryManager:
     def __init__(self):
@@ -134,9 +143,26 @@ class MemoryManager:
             return {}
 
     # ==================== LONG-TERM FACTS ====================
-    def add_fact(self, fact_text, category="general"):
-        """Saves a learned fact about the user or preferences."""
+    def add_fact(self, fact_text, category=None):
+        """Saves a learned fact about the user or preferences with a category."""
+        if not category:
+            text_lower = fact_text.lower()
+            if any(word in text_lower for word in ["project", "build", "code"]):
+                category = MemoryCategory.PROJECT.value
+            elif any(word in text_lower for word in ["want", "like", "prefer", "don't like"]):
+                category = MemoryCategory.PREFERENCE.value
+            elif any(word in text_lower for word in ["goal", "aim", "target"]):
+                category = MemoryCategory.GOAL.value
+            elif any(word in text_lower for word in ["todo", "task", "assignment"]):
+                category = MemoryCategory.TASK.value
+            else:
+                category = MemoryCategory.GENERAL.value
+
         try:
+            # Validate category
+            if category not in [c.value for c in MemoryCategory]:
+                logger.warning(f"Invalid memory category '{category}'. Falling back to 'general'.")
+                category = MemoryCategory.GENERAL.value
             conn = self.get_connection()
             cursor = conn.cursor()
             cursor.execute(
@@ -150,6 +176,7 @@ class MemoryManager:
             logger.error(f"Failed to learn fact: {e}")
 
     def get_all_facts(self):
+        """Return all facts across categories (used by legacy UI)."""
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
@@ -159,6 +186,39 @@ class MemoryManager:
             return [{"fact": r["fact_text"], "category": r["category"], "date": r["created_at"]} for r in rows]
         except Exception as e:
             logger.error(f"Failed to load facts: {e}")
+            return []
+
+    def get_facts_by_category(self, category):
+        """Return facts for a specific category."""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT fact_text, category, created_at FROM facts WHERE category = ? ORDER BY created_at DESC",
+                (category,)
+            )
+            rows = cursor.fetchall()
+            conn.close()
+            return [{"fact": r["fact_text"], "category": r["category"], "date": r["created_at"]} for r in rows]
+        except Exception as e:
+            logger.error(f"Failed to load facts for category {category}: {e}")
+            return []
+
+    def search_facts(self, keyword):
+        """Search facts containing the keyword across all categories."""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            pattern = f"%{keyword}%"
+            cursor.execute(
+                "SELECT fact_text, category, created_at FROM facts WHERE fact_text LIKE ? ORDER BY created_at DESC",
+                (pattern,)
+            )
+            rows = cursor.fetchall()
+            conn.close()
+            return [{"fact": r["fact_text"], "category": r["category"], "date": r["created_at"]} for r in rows]
+        except Exception as e:
+            logger.error(f"Failed to search facts with keyword {keyword}: {e}")
             return []
 
     def delete_fact(self, fact_text):
