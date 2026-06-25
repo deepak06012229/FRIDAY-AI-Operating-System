@@ -2,6 +2,7 @@ import json
 import re
 from PyQt5.QtCore import QObject, pyqtSignal
 from utils import logger
+from utils.response_sanitizer import sanitize_response
 import config
 from memory.memory_manager import MemoryManager
 from ai.llm_client import LLMClient
@@ -16,7 +17,12 @@ class FRIDAYBrain(QObject):
     """Orchestrates query parsing, DB logging, tool calls, and LLM text generation."""
     memory_updated = pyqtSignal()  # Signal emitted after memory updates
     speak_requested = pyqtSignal(str)              # FRIDAY speaks this
-    response_completed = pyqtSignal(str, str)     # Emits (user_msg, friday_msg) to Chat UI
+    chat_message = pyqtSignal(str, str)          # Emits (user_msg, friday_msg) to Chat UI
+    system_log = pyqtSignal(str)                     # General system logs
+    warning_log = pyqtSignal(str)                    # Warnings
+    error_log = pyqtSignal(str)                      # Errors
+    voice_log = pyqtSignal(str)                      # Voice events
+    workflow_log = pyqtSignal(str)                   # Workflow execution logs
     workflow_trigger = pyqtSignal(str)            # Triggers workflow execution
     system_exit_triggered = pyqtSignal()          # Triggers system close
 
@@ -38,6 +44,7 @@ class FRIDAYBrain(QObject):
             return
         # No session active check needed
         logger.info(f"Brain: Processing query: '{user_query}'")
+        self.system_log.emit(f"Processing query: {user_query}")
         self.memory.add_conversation_message("user", user_query)
         local_intent = self.intent_analyzer.analyze(user_query)
         if local_intent:
@@ -45,38 +52,39 @@ class FRIDAYBrain(QObject):
             param = local_intent["param"]
             speak_text = local_intent["speak"]
             logger.info(f"Brain: Local command match found: {intent_type}")
+            self.system_log.emit(f"Local command match: {intent_type}")
             if intent_type == "exit_app":
                 self.speak_requested.emit(speak_text)
                 self.system_exit_triggered.emit()
                 self.memory.add_conversation_message("friday", speak_text)
-                self.response_completed.emit(user_query, speak_text)
+                self.chat_message.emit(user_query, speak_text)
                 return
             elif intent_type == "launch_app":
                 success, msg = app_launcher.launch_application(param)
                 response_str = f"{speak_text} {msg}"
                 self.speak_requested.emit(response_str)
                 self.memory.add_conversation_message("friday", response_str)
-                self.response_completed.emit(user_query, response_str)
+                self.chat_message.emit(user_query, response_str)
                 return
             elif intent_type == "open_url":
                 success, msg = browser_controller.open_url(param)
                 response_str = f"{speak_text} {msg}"
                 self.speak_requested.emit(response_str)
                 self.memory.add_conversation_message("friday", response_str)
-                self.response_completed.emit(user_query, response_str)
+                self.chat_message.emit(user_query, response_str)
                 return
             elif intent_type == "execute_workflow":
                 self.speak_requested.emit(speak_text)
                 self.workflow_trigger.emit(param)
                 self.memory.add_conversation_message("friday", speak_text)
-                self.response_completed.emit(user_query, speak_text)
+                self.chat_message.emit(user_query, speak_text)
                 return
             elif intent_type == "learn_fact":
                 self.memory.add_fact(param)
                 self.memory_updated.emit()
                 self.speak_requested.emit(speak_text)
                 self.memory.add_conversation_message("friday", speak_text)
-                self.response_completed.emit(user_query, speak_text)
+                self.chat_message.emit(user_query, speak_text)
                 return
             elif intent_type == "learn_fact_category":
                 category = local_intent.get("category", "general")
@@ -84,7 +92,7 @@ class FRIDAYBrain(QObject):
                 self.memory_updated.emit()
                 self.speak_requested.emit(speak_text)
                 self.memory.add_conversation_message("friday", speak_text)
-                self.response_completed.emit(user_query, speak_text)
+                self.chat_message.emit(user_query, speak_text)
                 return
             elif intent_type == "show_facts_category":
                 facts = self.memory.get_facts_by_category(param)
@@ -95,13 +103,13 @@ class FRIDAYBrain(QObject):
                     response_str = f"You have no stored {param} items, Chief."
                 self.speak_requested.emit(response_str)
                 self.memory.add_conversation_message("friday", response_str)
-                self.response_completed.emit(user_query, response_str)
+                self.chat_message.emit(user_query, response_str)
                 return
             elif intent_type == "forget_fact":
                 self.memory.delete_fact(param)
                 self.speak_requested.emit(speak_text)
                 self.memory.add_conversation_message("friday", speak_text)
-                self.response_completed.emit(user_query, speak_text)
+                self.chat_message.emit(user_query, speak_text)
                 return
             elif intent_type == "get_profile":
                 facts = self.memory.get_all_facts()
@@ -112,13 +120,13 @@ class FRIDAYBrain(QObject):
                     response_str = "No profile matrices logged yet, Chief."
                 self.speak_requested.emit(response_str)
                 self.memory.add_conversation_message("friday", response_str)
-                self.response_completed.emit(user_query, response_str)
+                self.chat_message.emit(user_query, response_str)
                 return
             elif intent_type == "clear_memory":
                 self.memory.clear_all_memory()
                 self.speak_requested.emit(speak_text)
                 self.memory.add_conversation_message("friday", speak_text)
-                self.response_completed.emit(user_query, speak_text)
+                self.chat_message.emit(user_query, speak_text)
                 return
             elif intent_type == "system_status":
                 cpu = psutil.cpu_percent()
@@ -126,7 +134,7 @@ class FRIDAYBrain(QObject):
                 status_msg = f"Systems are nominal, Chief. CPU is at {cpu} percent. Memory is at {ram} percent."
                 self.speak_requested.emit(status_msg)
                 self.memory.add_conversation_message("friday", status_msg)
-                self.response_completed.emit(user_query, status_msg)
+                self.chat_message.emit(user_query, status_msg)
                 return
         # No local command match. Use Ollama first, Gemini fallback
         logger.info("Brain: Forwarding query to AI engine...")
@@ -144,10 +152,12 @@ class FRIDAYBrain(QObject):
 
         try:
             logger.info("Brain: Using Ollama provider")
+            self.system_log.emit("Using Ollama provider")
             friday_response = ask_friday(user_query, system_prompt=context, chat_history=chat_history)
             self._current_model = "Ollama (qwen2.5-coder:latest)"
         except Exception as ollama_error:
             logger.warning(f"Brain: Ollama unavailable. Falling back to Gemini. Error: {ollama_error}")
+            self.warning_log.emit(f"Ollama unavailable: {ollama_error}")
             if self.llm.api_key:
                 self._current_model = f"Gemini ({self.llm.model})"
             else:
@@ -156,6 +166,7 @@ class FRIDAYBrain(QObject):
                 friday_response = self.llm.generate_response(user_query, chat_history)
             except Exception as gemini_error:
                 logger.error(f"Brain: Gemini also failed. Error: {gemini_error}")
+                self.error_log.emit(f"Gemini failed: {gemini_error}")
                 self._current_model = "Offline Rule-Based"
                 friday_response = ("Chief, I am unable to connect to either the local AI model or the cloud AI service.")
         # Parse embedded tool blocks
@@ -163,13 +174,15 @@ class FRIDAYBrain(QObject):
             self.parse_and_execute_tools(friday_response)
         except Exception as tool_error:
             logger.error(f"Brain Tool Engine Error: {tool_error}")
-        # Save response
-        self.memory.add_conversation_message("friday", friday_response)
-        # Speak response
+            self.error_log.emit(f"Tool engine error: {tool_error}")
+        # Sanitize response for user display
+        sanitized_msg = sanitize_response(friday_response)
+        self.memory.add_conversation_message("friday", sanitized_msg)
+        # Speak response remains cleaned JSON
         clean_speech = self.clean_json_from_response(friday_response)
         self.speak_requested.emit(clean_speech)
-        # Update UI
-        self.response_completed.emit(user_query, friday_response)
+        # Update UI with sanitized message
+        self.chat_message.emit(user_query, sanitized_msg)
 
     def parse_and_execute_tools(self, response_text):
         """Searches for json markdown blocks and runs corresponding launcher commands."""

@@ -1,6 +1,8 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QTextBrowser, QLabel
 from PyQt5.QtCore import pyqtSignal, Qt
 from utils import logger
+from utils.response_sanitizer import sanitize_response
+
 
 class ChatPanel(QWidget):
     """Provides a scrollable rich-text conversation interface and text command input."""
@@ -107,7 +109,7 @@ class ChatPanel(QWidget):
     def add_friday_message(self, message):
         """Displays FRIDAY's reply, rendering markdown/code blocks cleanly."""
         # Simple rendering replacement for code blocks to look high-tech
-        formatted_message = message
+        formatted_message = sanitize_response(message)
         
         # Replace json block styling
         formatted_message = formatted_message.replace(

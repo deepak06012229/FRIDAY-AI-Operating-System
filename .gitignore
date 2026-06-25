@@ -29,3 +29,7 @@ Thumbs.db
 
 # Temporary Files
 temp/
+.cache/
+
+# Generated Documentation
+Version/

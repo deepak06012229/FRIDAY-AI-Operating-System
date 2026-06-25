@@ -60,7 +60,7 @@ def main():
     voice.start()
 
     logger.info("FRIDAY AI OS components successfully bound. Showing dashboard HUD...")
-    dashboard.show()
+    dashboard.showMaximized()
     
     # Start main Qt event loop
     sys.exit(app.exec_())

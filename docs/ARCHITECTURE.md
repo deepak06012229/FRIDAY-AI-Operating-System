@@ -20,6 +20,8 @@ The FRIDAY AI Operating System is built around a **Qt‑based event‑driven cor
 | **Workflow Engine** | `automation/workflow_engine.py` | Executes declarative JSON workflows defined in `workflows.json`. |
 | **Voice Engine** | `voice/tts_worker.py` (and related helpers) | Text‑to‑speech synthesis, playback queue, and voice selection. |
 | **Dashboard** | `ui/dashboard.py` & UI widgets | Visual front‑end: chat panel, HUD circle, system metrics, automation panel, memory browser. |
+| **Utils** | `utils/` | Helper functions and shared utilities. |
+| **Assets** | `assets/` | Images, icons, and media used in UI and documentation. |
 
 ### Data Flow
 1. **Input** → Intent Analyzer parses command.
